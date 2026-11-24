@@ -176,4 +176,86 @@ class AuthTest extends TestCase
         $response->assertOk();
         $this->assertEquals('text/csv; charset=UTF-8', $response->headers->get('content-type'));
     }
+
+    public function test_admin_bisa_update_tanggal_kedaluwarsa_dan_tambah_stok_batch_baru(): void
+    {
+        $admin = $this->makeUser(['role' => User::ROLE_ADMIN]);
+        $cat = Category::create(['name' => 'Makanan']);
+        $product = Product::create([
+            'code' => 'BATCH001',
+            'name' => 'Susu Kotak',
+            'category_id' => $cat->id,
+            'buy_price' => 5000,
+            'sell_price' => 7000,
+            'stock' => 5,
+            'min_stock' => 1,
+            'unit' => 'kotak',
+            'expired_date' => Carbon::yesterday(),
+        ]);
+
+        $newExpiry = Carbon::today()->addMonths(6)->toDateString();
+
+        $response = $this->actingAs($admin)
+            ->put(route('admin.expiry.update', $product->id), [
+                'expired_date' => $newExpiry,
+                'add_stock' => 10,
+                'notes' => 'Batch baru datang',
+            ]);
+
+        $response->assertRedirect(route('admin.expiry.index'));
+        $this->assertEquals(15, $product->fresh()->stock);
+        $this->assertEquals($newExpiry, $product->fresh()->expired_date->toDateString());
+    }
+
+    public function test_admin_bisa_memusnahkan_sisa_stok_barang_kedaluwarsa(): void
+    {
+        $admin = $this->makeUser(['role' => User::ROLE_ADMIN]);
+        $cat = Category::create(['name' => 'Makanan']);
+        $product = Product::create([
+            'code' => 'DISP001',
+            'name' => 'Roti Basi',
+            'category_id' => $cat->id,
+            'buy_price' => 5000,
+            'sell_price' => 7000,
+            'stock' => 8,
+            'min_stock' => 1,
+            'unit' => 'bks',
+            'expired_date' => Carbon::yesterday(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->post(route('admin.expiry.dispose', $product->id));
+
+        $response->assertRedirect(route('admin.expiry.index'));
+        $this->assertEquals(0, $product->fresh()->stock);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'type' => 'out',
+            'quantity' => 8,
+            'current_stock' => 0,
+        ]);
+    }
+
+    public function test_admin_bisa_hapus_barang_kedaluwarsa(): void
+    {
+        $admin = $this->makeUser(['role' => User::ROLE_ADMIN]);
+        $cat = Category::create(['name' => 'Makanan']);
+        $product = Product::create([
+            'code' => 'DEL001',
+            'name' => 'Produk Dihapus',
+            'category_id' => $cat->id,
+            'buy_price' => 5000,
+            'sell_price' => 7000,
+            'stock' => 0,
+            'min_stock' => 1,
+            'unit' => 'pcs',
+            'expired_date' => Carbon::yesterday(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->delete(route('admin.expiry.destroy', $product->id));
+
+        $response->assertRedirect(route('admin.expiry.index'));
+        $this->assertDatabaseMissing('products', ['id' => $product->id]);
+    }
 }

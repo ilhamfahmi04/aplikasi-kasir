@@ -62,6 +62,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // 5. Monitoring Kedaluwarsa
     Route::get('/kedaluwarsa', [ExpiryController::class, 'index'])->name('expiry.index');
+    Route::put('/kedaluwarsa/{product}', [ExpiryController::class, 'updateExpiry'])->name('expiry.update');
+    Route::post('/kedaluwarsa/{product}/musnahkan', [ExpiryController::class, 'disposeStock'])->name('expiry.dispose');
+    Route::delete('/kedaluwarsa/{product}', [ExpiryController::class, 'destroy'])->name('expiry.destroy');
 
     // 6. Riwayat Transaksi Seluruh Toko
     Route::get('/transaksi', [TransactionController::class, 'index'])->name('transactions.index');
