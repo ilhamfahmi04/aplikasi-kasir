@@ -7,7 +7,7 @@ use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -108,7 +108,7 @@ class ReportController extends Controller
         ));
     }
 
-    public function exportCsv(Request $request): Response
+    public function exportCsv(Request $request): StreamedResponse
     {
         $start = Carbon::parse($request->query('start'));
         $end = Carbon::parse($request->query('end'));

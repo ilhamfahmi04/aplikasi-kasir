@@ -162,4 +162,18 @@ class AuthTest extends TestCase
         // Stok tidak boleh berkurang
         $this->assertEquals(5, $expiredProduct->fresh()->stock);
     }
+
+    public function test_admin_bisa_export_csv_laporan(): void
+    {
+        $admin = $this->makeUser(['role' => User::ROLE_ADMIN]);
+
+        $response = $this->actingAs($admin)
+             ->get(route('admin.reports.export-csv', [
+                 'start' => Carbon::now()->startOfMonth()->format('Y-m-d'),
+                 'end' => Carbon::now()->endOfMonth()->format('Y-m-d'),
+             ]));
+
+        $response->assertOk();
+        $this->assertEquals('text/csv; charset=UTF-8', $response->headers->get('content-type'));
+    }
 }
